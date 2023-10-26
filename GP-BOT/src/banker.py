@@ -51,7 +51,7 @@ class BankerGame:
             "Écrivez un nombre entre 1 et 500 🔢 :",
             "Écrivez un animal 🐕 :",
             "Écrivez un fruit 🍏 :",
-            "Écrivez un caractère spécial (parmi une sélection) 🔣 :"
+            'Écrivez un caractère spécial (parmi & " # ~ ( [ - _ ^ @ = + } ! ? : § $ £ € < > % * ) 🔣 :'
         ]
 
         for step in steps:
@@ -68,7 +68,7 @@ class BankerGame:
         # À la fin, affiche le mot de passe complet
         self.password = ''.join(self.password_parts)
         self.password = self.password.lower()
-        await self.embed_message(self.channel, f"Mot de passe créé : {self.password}", view=None)
+        await self.embed_message(self.channel, f"Voici le mot de passe que vous avez sélectionné pour sécuriser le coffre de la NeoBank : {self.password}\nQuelle imagination !", view=None)
         self.game_over.set()  # signale que le jeu est terminé
         await countdown_task
 
@@ -101,28 +101,29 @@ class BankerGame:
 async def embed_message_banker(channel):
     print(channel)
     embed = discord.Embed(
-        title="My Amazing Embed",
-        description="Embeds are super easy, barely an inconvenience.",
+        title="Bienvenue dans le channel des agents de sécurité.",
+        description="Votre objectif est de créer un mot de passe indécryptable afin de sécuriser la NeoBank. Soyez créatifs !",
         color=discord.Colour.blurple(), # Pycord provides a class with default colors you can choose from
     )
-    embed.add_field(name="A Normal Field", value="A really nice field with some information. **The description as well as the fields support markdown!**")
+    embed.set_footer(text="*Début du timer de 3 minutes") # footers can have icons too
+    await channel.send(file=discord.File('../ressource/Security_officer.png'), embed=embed)
 
-    embed.add_field(name="Inline Field 1", value="Inline Field 1", inline=True)
-    embed.add_field(name="Inline Field 2", value="Inline Field 2", inline=True)
-    embed.add_field(name="Inline Field 3", value="Inline Field 3", inline=True)
+async def embed_message_thief(channel):
+    print(channel)
+    embed = discord.Embed(
+        title="Bienvenue dans le channel des voleurs.",
+        description="Votre objectif est de décrypter le mot de passe du coffre fort de la NeoBank afin de rafler tout le butin ! Veuillez patienter pendant le minage de la porte d'entrée...",
+        color=discord.Colour.blurple(), # Pycord provides a class with default colors you can choose from
+    )
+    await channel.send(file=discord.File('../ressource/The_masked_boy.png'), embed=embed)
 
-    embed.set_footer(text="Footer! No markdown here.") # footers can have icons too
-    embed.set_author(name="Pycord Team", icon_url="https://example.com/link-to-my-image.png")
-    embed.set_thumbnail(url="https://example.com/link-to-my-thumbnail.png")
-    embed.set_image(url="https://example.com/link-to-my-banner.png")
-    await channel.send(embed=embed)
-
-async def start_minigame(bot, guild, bankers):
+async def start_minigame(bot, guild, bankers, thieves, banker_role_id, thief_role_id):
     banker_channel = guild.get_channel(1166377084415901696)
     thief_channel = guild.get_channel(1166377370182242304)
     channel = guild.get_channel(1166381947564601404)
     try:
         await embed_message_banker(banker_channel)
+        await embed_message_thief(thief_channel)
     except Exception as e:
         print(f"Error: {e}")
     game = BankerGame(bot, banker_channel)
@@ -136,7 +137,7 @@ async def start_minigame(bot, guild, bankers):
     for banker in bankers:
         await banker.move_to(thief_channel)
 
-    thief_game = ThiefGame(bot, thief_channel, game.password, game.password_parts)
+    thief_game = ThiefGame(bot, thief_channel, game.password, game.password_parts, guild, bankers, thieves, banker_role_id, thief_role_id)
     print(game.password)
 
     await thief_game.start()

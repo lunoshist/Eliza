@@ -22,11 +22,17 @@ class ThiefButton(discord.ui.View):
         self.stop()
 
 class ThiefGame:
-    def __init__(self, bot, channel, password, password_parts):
+    def __init__(self, bot, channel, password, password_parts, guild, bankers, thieves, banker_role_id, thief_role_id):
         self.bot = bot
         self.channel = channel
         self.target_password = password
         self.password_parts = password_parts
+        self.guild = guild
+        self.bankers = bankers
+        self.thieves = thieves
+        self.banker_role_id = banker_role_id
+        self.thief_role_id = thief_role_id
+        self.List_attente_channel = guild.get_channel(1166381947564601404)  # Remplacez par l'ID du vocal Banker
         self.game_over = asyncio.Event()  # Événement pour signaler la fin du jeu
         self.winner = None
         self.score = 0
@@ -50,13 +56,14 @@ class ThiefGame:
         def check(m):
             return m.channel == self.channel and not m.author.bot
 
-        await self.embed_message(self.channel, f"{prompt}\nIndice : {hint}", view=None)
+        await self.embed_message(self.channel, f"{prompt}\n{hint}", view=None)
         message = await self.bot.wait_for('message', check=check)
         return message.content
 
     async def start(self):
         api_key = os.getenv('API_KEY')
         self.start_time = time.time()
+        await self.embed_message(self.channel, "Le mot de passe choisi se compose d'une capitale, d'un nombre entre 1 et 500, d'un animal, d'un fruit, d'un caractère spécial.\nVous disposez de 5 minutes pour le décrypter avant l'arrivée de la police.\nDébut du timer dans 3, 2, 1...", color=discord.Colour.blurple())
         countdown_task = asyncio.create_task(self.countdown(300))
         openai.api_key = api_key
         steps = [
@@ -64,7 +71,7 @@ class ThiefGame:
             "Devinez un nombre entre 1 et 500 🔢 :",
             "Devinez un animal 🐕 :",
             "Devinez un fruit 🍏 :",
-            "Devinez un caractère spécial (parmi une sélection) 🔣 :"
+            'Devinez un caractère spécial (parmi & " # ~ ( [ - _ ^ @ = + } ! ? : § $ £ € < > % * ) 🔣 :'
         ]
         for index, step in enumerate(steps):
             while True:  # Boucle jusqu'à ce que la réponse correcte soit donnée
@@ -74,7 +81,7 @@ class ThiefGame:
                     messages=[
                         {
                         "role": "system",
-                        "content": "Tu dois aider les joueurs à deviner le mot de passe pour un mini jeux, tu vas avoir la question que les joueurs doivent deviné et le mot que que les joueurs doivent deviné, avec cela tu dois créer un indice pour aider les joueurs à trouver le mot qui constitue le mot de passe. Répond moi uniquement l'indice !!!"
+                        "content": "Tu dois aider les joueurs à deviner le mot de passe pour un mini jeux, tu vas avoir la question que les joueurs doivent deviné et le mot que que les joueurs doivent deviné, avec cela tu dois créer un indice pas trop simple pour aider les joueurs à trouver le mot qui constitue le mot de passe. Répond moi uniquement l'indice !!!"
                         },
                         {
                         "role": "user",
@@ -119,6 +126,17 @@ class ThiefGame:
         else:
             final_score_str = f"{minutes:02d}:{seconds:02d}"
             await self.embed_message(self.channel, f"Les voleurs ont gagné la partie avec un score de {final_score_str} ", view=None, color=discord.Colour.green())
+        
+        await asyncio.sleep(20)
+        for thief in self.thieves:
+            thief_role = discord.utils.get(self.guild.roles, id=self.thief_role_id)
+            await thief.remove_roles(thief_role)
+            await thief.move_to(self.List_attente_channel)
+
+        for banker in self.bankers:
+            banker_role = discord.utils.get(self.guild.roles, id=self.banker_role_id)
+            await banker.remove_roles(banker_role)
+            await banker.move_to(self.List_attente_channel)
 
     async def wait_for_confirmation(self, guess):
         view = ThiefButton()
