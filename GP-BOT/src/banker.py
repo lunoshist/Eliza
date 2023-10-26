@@ -51,7 +51,7 @@ class BankerGame:
             "Écrivez un nombre entre 1 et 500 🔢 :",
             "Écrivez un animal 🐕 :",
             "Écrivez un fruit 🍏 :",
-            "Écrivez un caractère spécial (parmi une sélection) :"
+            "Écrivez un caractère spécial (parmi une sélection) 🔣 :"
         ]
 
         for step in steps:
@@ -117,15 +117,15 @@ async def embed_message_banker(channel):
     embed.set_image(url="https://example.com/link-to-my-banner.png")
     await channel.send(embed=embed)
 
-async def start_banker_minigame(bot, guild, bankers):
+async def start_minigame(bot, guild, bankers):
     banker_channel = guild.get_channel(1166377084415901696)
     thief_channel = guild.get_channel(1166377370182242304)
     channel = guild.get_channel(1166381947564601404)
     try:
-        await embed_message_banker(channel)
+        await embed_message_banker(banker_channel)
     except Exception as e:
         print(f"Error: {e}")
-    game = BankerGame(bot, channel)
+    game = BankerGame(bot, banker_channel)
     # lance le jeu et attend qu'il se termine
     game_task = asyncio.create_task(game.start())
     await game.game_over.wait()
@@ -136,5 +136,7 @@ async def start_banker_minigame(bot, guild, bankers):
     for banker in bankers:
         await banker.move_to(thief_channel)
 
-    thief_game = ThiefGame(bot, channel, game.password)
+    thief_game = ThiefGame(bot, thief_channel, game.password, game.password_parts)
     print(game.password)
+
+    await thief_game.start()
