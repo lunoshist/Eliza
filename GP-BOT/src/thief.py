@@ -76,18 +76,19 @@ class ThiefGame:
         for index, step in enumerate(steps):
             while True:  # Boucle jusqu'à ce que la réponse correcte soit donnée
                 # Génére un indice en utilisant l'API OpenAI
-                gpt_response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[
+                messages = [
                         {
                         "role": "system",
-                        "content": "Tu dois aider les joueurs à deviner le mot de passe pour un mini jeux, tu vas avoir la question que les joueurs doivent deviné et le mot que que les joueurs doivent deviné, avec cela tu dois créer un indice pas trop simple pour aider les joueurs à trouver le mot qui constitue le mot de passe. Répond moi uniquement l'indice !!!"
+                        "content": "Tu dois aider les joueurs à deviner le mot de passe pour un mini jeux, tu vas avoir la question que les joueurs doivent deviné et le mot que que les joueurs doivent deviné, avec cela tu dois créer un indice pas trop simple pour aider les joueurs à trouver le mot qui constitue le mot de passe. Répond moi uniquement l'indice !!!. Si le joueur ne trouve pas je tu auras le précédent indice, la réponse, renvois moi un nouvel indice en fonction."
                         },
                         {
                         "role": "user",
                         "content": step + " " + self.password_parts[index]
                         }
-                    ],
+                    ]
+                gpt_response = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=messages,
                     temperature=0,
                     max_tokens=256,
                     top_p=1,
@@ -106,6 +107,9 @@ class ThiefGame:
                 elif confirmation:
                     # Si la réponse est incorrecte, affiche un message d'erreur
                     await self.embed_message(self.channel, "Mot incorrect. Réessayez.", color=discord.Colour.red())
+                    messages.append({"role": "system", "content": hint})
+                    messages.append({"role": "user","content": guess})
+                    print(messages)
                 else:
                     # Si la confirmation a été annulée, affiche un message d'annulation
                     await self.embed_message(self.channel, "Annulé. Réessayez.", view=None)
@@ -136,6 +140,7 @@ class ThiefGame:
         for banker in self.bankers:
             banker_role = discord.utils.get(self.guild.roles, id=self.banker_role_id)
             await banker.remove_roles(banker_role)
+            await banker.remove_roles(thief_role)
             await banker.move_to(self.List_attente_channel)
 
     async def wait_for_confirmation(self, guess):
